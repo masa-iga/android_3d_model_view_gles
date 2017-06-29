@@ -8,16 +8,10 @@ import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
 import android.util.Log;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
-
-/**
- * Created by masa on 2017/03/02.
- */
 
 public final class SimpleRenderer implements GLSurfaceView.Renderer {
     private final String TAG = "SimpleRenderer";
@@ -99,14 +93,16 @@ public final class SimpleRenderer implements GLSurfaceView.Renderer {
     public SimpleRenderer(final Context context) {
         frame = 0;
         mContext = context;
-        try {
-            mModel = new ObjectModel();
-            mModel.loadObjFromFile(context.getResources().openRawResource(R.raw.miku_obj));
-            mModel.loadMtlFromFile(context.getResources().openRawResource(R.raw.miku_mtl));
-            mModel.setupModel();
-        } catch (java.io.IOException e) {
-            Log.v("SimpleRenderer", "loading model: "+e);
-        }
+
+        mModel = new ObjectModel();
+        mModel.loadObjectData(context.getResources().openRawResource(R.raw.miku_obj));
+        mModel.loadMaterialData(context.getResources().openRawResource(R.raw.miku_mtl));
+
+        mModel.setupMaterialName();
+        mModel.setupVtxCoord();
+        mModel.setupTexCoord();
+        mModel.setupNormal();
+        mModel.setupMaterial();
     }
     // The system calls this method once, when creating the GLSurfaceView.
     // Use this method to perform actions that need to happen only once,
@@ -242,51 +238,50 @@ public final class SimpleRenderer implements GLSurfaceView.Renderer {
         GLES20.glEnable(GLES20.GL_DEPTH_TEST);
         GLES20Utils.checkGlError("glEnable GL_DEPTH_TEST");
 
-        if (Boolean.TRUE) {
-            for (int i=0; i < mModel.objectArray.size(); i++) {
-                ObjectModel.Object obj     = mModel.objectArray.get(i);
-                FloatBuffer vertexBuffer   = obj.mVerticesBuffer;
-                FloatBuffer texCoordBuffer = obj.mTexCoordBuffer;
-                FloatBuffer normalBuffer   = obj.mNormalBuffer;
-                FloatBuffer nsBuffer       = obj.ns;
-                FloatBuffer kdBuffer       = obj.kd;
-                FloatBuffer ksBuffer       = obj.ks;
+        for (int i=0; i < mModel.objectArray.size(); i++) {
+            ObjectModel.MyObject obj = mModel.objectArray.get(i);
+            FloatBuffer vertexBuffer   = obj.vtxBuffer;
+            FloatBuffer texCoordBuffer = obj.texBuffer;
+            FloatBuffer normalBuffer   = obj.normalBuffer;
 
-                if (obj.hasTexture) {
-                    if (frame == 0) {
-                        Log.d(TAG, "texture material : " + obj.name);
-                        Log.d(TAG, "texture file     : " + obj.map_Kd);
-                    }
-                    GLES20.glUniform1f(mHasTexture, 1.0f);
-                    GLES20Utils.checkGlError("glUniform1f mHasTexture");
+            FloatBuffer nsBuffer       = obj.ns;
+            FloatBuffer kdBuffer       = obj.kd;
+            FloatBuffer ksBuffer       = obj.ks;
 
-                    GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-                    GLES20Utils.checkGlError("glActiveTexture");
-                    GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextureId);
-                    GLES20Utils.checkGlError("glBindTexture");
-                    GLES20.glUniform1i(mTexture, 0);
-                    GLES20Utils.checkGlError("glUniform1i mTexture");
-                } else {
-                    GLES20.glUniform1f(mHasTexture, 0.0f);
-                    GLES20Utils.checkGlError("glUniform1f mHasTexture");
+            if (obj.hasTexture) {
+                if (frame == 0) {
+                    Log.d(TAG, "texture material : " + obj.name);
+                    Log.d(TAG, "texture file     : " + obj.map_Kd);
                 }
+                GLES20.glUniform1f(mHasTexture, 1.0f);
+                GLES20Utils.checkGlError("glUniform1f mHasTexture");
 
-                GLES20.glUniform1fv(mNscolor, 1, nsBuffer);
-                GLES20Utils.checkGlError("glUniform1fv nsBuffer");
-                GLES20.glUniform3fv(mKdcolor, 1, kdBuffer);
-                GLES20Utils.checkGlError("glUniform3fv kdBuffer");
-                GLES20.glUniform3fv(mKscolor, 1, ksBuffer);
-                GLES20Utils.checkGlError("glUniform3fv ksBuffer");
-                GLES20.glVertexAttribPointer(mPosition, 3, GLES20.GL_FLOAT, false, 0, vertexBuffer);
-                GLES20Utils.checkGlError("glVertexAttribPointer vertexBuffer");
-                GLES20.glVertexAttribPointer(mTexcoord, 2, GLES20.GL_FLOAT, false, 0, texCoordBuffer);
-                GLES20Utils.checkGlError("glVertexAttribPointer texCoordBuffer");
-                GLES20.glVertexAttribPointer(mNormal, 3, GLES20.GL_FLOAT, false, 0, normalBuffer);
-                GLES20Utils.checkGlError("glVertexAttribPointer normalBuffer");
-
-                GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, mModel.objectArray.get(i).triangleNum);
-                GLES20Utils.checkGlError("glVertexAttribPointer glDrawArrays");
+                GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+                GLES20Utils.checkGlError("glActiveTexture");
+                GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextureId);
+                GLES20Utils.checkGlError("glBindTexture");
+                GLES20.glUniform1i(mTexture, 0);
+                GLES20Utils.checkGlError("glUniform1i mTexture");
+            } else {
+                GLES20.glUniform1f(mHasTexture, 0.0f);
+                GLES20Utils.checkGlError("glUniform1f mHasTexture");
             }
+
+            GLES20.glUniform1fv(mNscolor, 1, nsBuffer);
+            GLES20Utils.checkGlError("glUniform1fv nsBuffer");
+            GLES20.glUniform3fv(mKdcolor, 1, kdBuffer);
+            GLES20Utils.checkGlError("glUniform3fv kdBuffer");
+            GLES20.glUniform3fv(mKscolor, 1, ksBuffer);
+            GLES20Utils.checkGlError("glUniform3fv ksBuffer");
+            GLES20.glVertexAttribPointer(mPosition, 3, GLES20.GL_FLOAT, false, 0, vertexBuffer);
+            GLES20Utils.checkGlError("glVertexAttribPointer vertexBuffer");
+            GLES20.glVertexAttribPointer(mTexcoord, 2, GLES20.GL_FLOAT, false, 0, texCoordBuffer);
+            GLES20Utils.checkGlError("glVertexAttribPointer texCoordBuffer");
+            GLES20.glVertexAttribPointer(mNormal, 3, GLES20.GL_FLOAT, false, 0, normalBuffer);
+            GLES20Utils.checkGlError("glVertexAttribPointer normalBuffer");
+
+            GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, mModel.objectArray.get(i).triangleNum);
+            GLES20Utils.checkGlError("glVertexAttribPointer glDrawArrays");
         }
         GLES20.glDisable(GLES20.GL_BLEND);
         frame++;

@@ -25,4 +25,9 @@ public class ExampleUnitTest {
         assertEquals(3.0f, point.z, delta);
     }
 
+//    @Test
+//    public void objectData_test() throws Exception {
+//        RefactObjectData objectData = new RefactObjectData();
+//        objectData.loadObjectData(context.getResources().openRawResource(R.raw.miku_obj));
+//    }
 }
